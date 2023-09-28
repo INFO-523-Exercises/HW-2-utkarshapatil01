@@ -1,0 +1,618 @@
+---
+title: "HW-2-utkarshapatil01"
+author: "Utkarsha Patil"
+format: html
+editor: visual
+---
+
+# **Transforming like a Data... Transformer**
+
+## **Required Setup**
+
+```{r}
+# Sets the number of significant figures to two - e.g., 0.01
+options(digits = 2)
+
+# Required package for quick package downloading and loading 
+if (!require(pacman))  
+  install.packages("pacman")
+
+# Downloads and load required packages
+pacman::p_load(dlookr, # Exploratory data analysis
+               forecast, # Needed for Box-Cox transformations
+               formattable, # HTML tables from R outputs
+               here, # Standardizes paths to data
+               kableExtra, # Alternative to formattable
+               knitr, # Needed to write HTML reports
+               missRanger, # To generate NAs
+               tidyverse) # Powerful data wrangling package suite
+```
+
+## **Load and Examine a Data Set**
+
+```{r}
+# Let's load a data set from the squirrel data set
+ages <- read.csv("age_gaps.csv") 
+  # Add a categorical group
+ages_modified <-
+ages %>%
+mutate(Age_difference_group = ifelse(age_difference >= 0 & age_difference <= 15, "small", 
+                            ifelse(age_difference > 15 & age_difference <= 35, "Middle", 
+                                   "large")),
+         Age_difference_group = fct_rev(Age_difference_group))
+
+# What does the data look like?
+ages |>
+  head(20) |>
+  formattable()
+
+
+
+```
+
+## **Data Normality**
+
+Data normality, in statistics, refers to the assumption or property that data follows a normal distribution, also known as a Gaussian distribution. The normal distribution is a specific probability distribution characterized by a symmetric, bell-shaped curve.
+
+### **Describing Properties of our Data (Refined)**
+
+**Skewness** is a statistical measure that describes the asymmetry or lack of symmetry in a data set's distribution. It quantifies the degree to which the data deviates from a perfectly symmetrical distribution.
+
+```{r}
+ages_modified |>
+  select(actor_1_age, actor_2_age, age_difference) |>
+  describe() |>
+  select(described_variables, skewness) |>
+  formattable()
+```
+
+## **Testing Normality (Accelerated)**
+
+### Q-Q Plots
+
+A Quantile-Quantile plot, commonly known as a Q-Q plot, is a graphical tool used in statistics to assess whether a dataset follows a particular theoretical distribution, typically the normal distribution.
+
+```{r}
+ages_modified |>
+plot_normality(age_difference,actor_1_age, actor_2_age) # a Q-Q plot for 'age_difference' variable
+```
+
+## **Normality within Groups**
+
+Looking within Age_group at the subgroup normality
+
+### Q-Q Plots
+
+```{r message=FALSE, error=FALSE}
+ages_modified %>%
+  group_by(Age_difference_group) %>%
+  select(release_year, couple_number) %>%
+  plot_normality()
+```
+
+## **Transforming Data**
+
+We will try to transform the age_difference column with through several approaches and discuss the pros and cons of each. First however, we will remove `0` values, because age_difference values.
+
+```{r}
+InsMod <- ages_modified |>
+  filter(age_difference > 0)
+```
+
+### Square-root Transformation
+
+In R, you can perform a square root transformation on a variable in your data set to make its distribution closer to normal or to stabilize variance. This transformation is often used when dealing with data that exhibits a right-skewed distribution.
+
+```{r}
+# Transforming the age_difference column using Square-root Transformation
+sqrtIns <- transform(InsMod$age_difference, method = "sqrt") 
+
+summary(sqrtIns)
+```
+
+```{r}
+sqrtIns |>
+  plot() # plotting the transformed data by using square root transformation
+```
+
+### Logarithmic (+1) Transformation
+
+A logarithmic transformation with a "+1" added to each value is a common data transformation used to address issues related to skewness or to stabilize variance in data. It's particularly useful when dealing with data that has positive values, including zero. The "+1" addition is used to handle cases where the data contains zero values because the logarithm of zero is undefined.
+
+```{r}
+# Transforming the age_difference column using Logarithmic Transformation
+Log1Ins <- transform(InsMod$age_difference, method = "log+1") 
+
+summary(Log1Ins)
+```
+
+```{r}
+Log1Ins |>
+  plot()
+```
+
+### Squared Transformation
+
+A squared transformation is a data transformation that involves taking the square of each value in a data set. This transformation is often used to emphasize the differences between values and can be useful in various statistical analyses and modeling techniques.
+
+```{r}
+# Transforming the age_difference column using Squared Transformation
+SqrdIns <- transform(InsMod$age_difference, method = "x^2") 
+
+summary(SqrdIns)
+```
+
+```{r}
+SqrdIns |>
+  plot()
+```
+
+### Cubed Transformation
+
+A cubed transformation is a data transformation that involves taking the cube of each value in a data set. This transformation is used to emphasize nonlinear relationships between variables or to create more pronounced distinctions between values. Similar to squared transformations, cubed transformations can be applied to variables for various purposes, including modeling, data normalization, or addressing data skewness.
+
+```{r}
+# Transforming the age_difference column using Cubed Transformation
+CubeIns  <- transform(InsMod$age_difference, method = "x^3") 
+
+summary(CubeIns)
+```
+
+```{r}
+CubeIns |>
+  plot()
+```
+
+### **Box-cox Transformation**
+
+The Box-Cox transformation is a family of power transformations that are used to stabilize variance and make a data set more closely approximate a normal distribution. It is particularly useful when dealing with data that exhibits heteroscedasticity (varying levels of variance across different levels of the independent variable) or data that does not meet the assumptions of normality.
+
+```{r}
+# Transforming the age_difference column using Box-cox Transformation
+BoxCoxIns <- transform(InsMod$age_difference, method = "Box-Cox") 
+
+summary(BoxCoxIns)
+```
+
+```{r}
+BoxCoxIns |>
+  plot()
+```
+
+## **Produce an HTML Transformation Summary**
+
+```{r message=FALSE, warning=FALSE}
+# transformation_web_report(ages_modified)
+```
+
+# **Imputing like a Data Scientist**
+
+## **Required Setup**
+
+```{r message=FALSE, warning=FALSE}
+
+pacman::p_load(colorblindr, # Colorblind friendly pallettes
+               cluster, # K cluster analyses
+               dlookr, # Exploratory data analysis
+               formattable, # HTML tables from R outputs
+               ggfortify, # Plotting tools for stats
+               ggpubr, # Publishable ggplots
+               here, # Standardizes paths to data
+               kableExtra, # Alternative to formattable
+               knitr, # Needed to write HTML reports
+               missRanger, # To generate NAs
+               plotly, # Visualization package
+               rattle, # Decision tree visualization
+               rpart, # rpart algorithm
+               tidyverse, # Powerful data wrangling package suite
+               visdat) # Another EDA visualization package
+
+# Set global ggplot() theme
+# Theme pub_clean() from the ggpubr package with base text size = 16
+theme_set(theme_pubclean(base_size = 16)) 
+# All axes titles to their respective far right sides
+theme_update(axis.title = element_text(hjust = 1))
+# Remove axes ticks
+theme_update(axis.ticks = element_blank()) 
+# Remove legend key
+theme_update(legend.key = element_blank())
+```
+
+## **Diagnose your Data**
+
+**diagnose()** allows you to diagnose variables on a data frame. Like any other `dplyr` functions, the first argument is the tibble (or data frame). The second and subsequent arguments refer to variables within the data frame.
+
+The variables of the `tbl_df` object returned by **diagnose()** are as
+
+-   `variables` : variable names
+
+-   `types` : the data type of the variables
+
+-   `missing_count` : number of missing values
+
+-   `missing_percent` : percentage of missing values
+
+-   `unique_count` : number of unique values
+
+-   `unique_rate` : rate of unique value. unique_count / number of observation
+
+```{r}
+# What are the properties of the data
+ages_modified |>
+  diagnose() |>
+  formattable()
+```
+
+## Diagnose Outliers
+
+The diagnose_outlier() produces outlier information for diagnosing the quality of the numerical data.
+
+```{r}
+# Table showing outliers
+ages_modified |>
+  diagnose_outlier() |>
+  filter(outliers_ratio > 0) |>  
+  mutate(rate = outliers_mean / with_mean) |>
+  arrange(desc(rate)) |> 
+  select(-outliers_cnt) |>
+  formattable()
+```
+
+```{r}
+# Boxplots and histograms of data with and without outliers
+ages_modified|>
+  select(find_outliers(ages_modified)) |>
+           plot_outlier()
+```
+
+## **Basic Exploration of Missing Values (NAs)**
+
+this code takes an existing data set, introduces missing values into it with a 30% probability, and stores the resulting data set with missing values in a new variable called na.ages_modified.
+
+```{r}
+# Randomly generate NAs for 30
+na.ages_modified <- ages_modified |>
+  generateNA(p = 0.3) #roughly 30% of the values in dataset will be replaced with missing values.
+
+# First six rows
+na.ages_modified |>
+head() |>
+  formattable()
+```
+
+```{r}
+# Create the NA table
+na.ages_modified |>
+  plot_na_pareto(only_na = TRUE, plot = FALSE) |>
+  formattable() # Publishable table
+```
+
+```{r}
+# Plot the insersect of the columns with missing values
+# This plot visualizes the table above
+na.ages_modified |>
+  plot_na_pareto(only_na = TRUE)
+```
+
+## **Advanced Exploration of Missing Values (NAs)**
+
+The **`vis_miss()`** function is part of the **`visdat`** package in R, which is used for visualizing missing data in a data set. The **`vis_miss()`** function uses color-coding to represent missing values in your data, making it easier to identify patterns of missing values.
+
+```{r}
+# Interactive plotly() plot of all NA values to examine every row
+#na.ages_modified |>
+# select(actor_1_age, actor_2_age, age_difference) |>
+# vis_miss() |>
+# ggplotly() 
+```
+
+## **Impute Outliers and NAs**
+
+### **Classifying Outliers**
+
+Classifying outliers involves identifying data points that deviate significantly from the majority of the data. Outliers can be of different types, such as univariate outliers (outliers in a single variable) or multivariate outliers (outliers when considering multiple variables simultaneously).
+
+Here we will use group_by operation to create group based on age difference
+
+```{r}
+# Box plot
+na.ages_modified %>% # Set the simulated normal data as a data frame
+  ggplot(aes(x = actor_1_age, y = Age_difference_group, fill = Age_difference_group)) + # Create a ggplot
+  geom_boxplot(width = 0.5, outlier.size = 2, outlier.alpha = 0.5) +
+  xlab("Age difference)") +  # Relabel the x axis label
+  ylab("Age group") + # Remove the y axis label
+ # scale_fill_OkabeIto() + # Change the color scheme for the fill criteria
+  theme(legend.position = "none")  # Remove the legend 
+
+```
+
+### **Mean Imputation**
+
+Mean imputation is a simple method for handling missing data in a dataset by replacing missing values with the mean (average) value of the non-missing values for that variable.
+
+```{r}
+# Raw summary, output suppressed
+mean_out_imp_age <- na.ages_modified |>
+  select(age_difference) |>
+  imputate_outlier(age_difference, method = "mean")
+
+# Output showing the summary statistics of our imputation
+mean_out_imp_age |>
+  summary() 
+```
+
+```{r}
+# Visualization of the mean imputation
+mean_out_imp_age |>
+  plot()
+```
+
+### **Median Imputation**
+
+Median imputation is a method for handling missing data in a dataset by replacing missing values with the median value of the non-missing values for that variable. Median imputation is an alternative to mean imputation and can be useful when dealing with skewed or non-normally distributed data, as it is less sensitive to extreme values.
+
+```{r}
+# Raw summary, output suppressed
+med_out_imp_age <- na.ages_modified |>
+  select(age_difference) |>
+  imputate_outlier(age_difference, method = "median")
+
+# Output showing the summary statistics of our imputation
+med_out_imp_age |>
+  summary() 
+```
+
+```{r}
+# Visualization of the median imputation
+med_out_imp_age |>
+  plot()
+```
+
+### **Mode Imputation**
+
+Mode imputation is a method for handling missing data in a dataset by replacing missing values with the mode, which is the most frequently occurring value, of the non-missing values for that variable. Mode imputation is typically used for categorical or nominal data where the concept of "average" (as in mean or median) does not apply.
+
+```{r}
+# Raw summary, output suppressed
+mode_out_imp_age <- na.ages_modified |>
+  select(age_difference) |>
+  imputate_outlier(age_difference, method = "mode")
+
+# Output showing the summary statistics of our imputation
+mode_out_imp_age |>
+  summary() 
+```
+
+```{r}
+# Visualization of the mode imputation
+mode_out_imp_age |>
+plot()
+```
+
+### **Capping Imputation (aka Winsorizing)**
+
+Capping imputation, also known as Winsorizing, is a data preprocessing technique used to handle outliers in a dataset by capping or limiting extreme values at a certain threshold. This method is particularly useful when you want to mitigate the impact of outliers without removing them entirely from the dataset.undefined.
+
+```{r}
+# Raw summary, output suppressed
+cap_out_imp_age <- na.ages_modified |>
+  select(age_difference) |>
+  imputate_outlier(age_difference, method = "mode")
+
+# Output showing the summary statistics of our imputation
+cap_out_imp_age |>
+  summary()
+```
+
+```{r}
+# Visualization of the capping imputation
+cap_out_imp_age |>
+  plot()
+```
+
+### **K-Nearest Neighbor (KNN) Imputation**
+
+K-Nearest Neighbor (KNN) imputation is a technique used to fill in missing values in a dataset by estimating them based on the values of their nearest neighbors. This method is particularly useful when you want to impute missing values in a multivariate context, considering the relationships between variables.
+
+```{r}
+# Raw summary, output suppressed
+knn_na_imp_age <- ages_modified |>
+imputate_na(age_difference, method = "knn") # didn't work for this dataset
+
+# Plot showing the results of our imputation
+knn_na_imp_age |>
+ plot()
+```
+
+### **Recursive Partitioning and Regression Trees (rpart)**
+
+```{r}
+# Raw summary, output suppressed
+rpart_na_imp_age <- ages_modified |>
+imputate_na(age_difference, method = "rpart")
+
+# Plot showing the results of our imputation
+rpart_na_imp_age |>
+ plot()
+```
+
+### **Multivariate Imputation by Chained Equations (MICE)**
+
+```{r}
+# Raw summary, output suppressed
+mice_na_imp_age <- na.ages_modified |>
+  imputate_na(age_difference, method = "mice", seed = 123)
+```
+
+```{r}
+# Plot showing the results of our imputation
+mice_na_imp_age |>
+  plot()
+```
+
+## **Produce an HTML Transformation Summary**
+
+```{r}
+# transformation_web_report(ages_modified)
+```
+
+# **Correlating Like a Data Master**
+
+## **Required setup**
+
+```{r message=FALSE, warning=FALSE, error=FALSE}
+if (!require(pacman))
+  install.packages("pacman")
+
+pacman::p_load(colorblindr,
+       dlookr,
+       formattable,
+       GGally,
+       ggdist,
+       ggpubr,
+       ggridges,
+       here,
+       tidyverse)
+
+# Set global ggplot() theme
+# Theme pub_clean() from the ggpubr package with base text size = 16
+theme_set(theme_pubclean(base_size = 12)) 
+# All axes titles to their respective far right sides
+theme_update(axis.title = element_text(hjust = 1))
+# Remove axes ticks
+theme_update(axis.ticks = element_blank()) 
+# Remove legend key
+theme_update(legend.key = element_blank())
+```
+
+## **Describe and Visualize Correlations**
+
+Correlation measures are used to determine how changes in one variable are associated with changes in another variable.
+
+**Pearson correlation** is used to measure the linear relationship between two continuous variables. A correlation coefficient value ranges from -1 (perfect negative correlation) to 1 (perfect positive correlation), with 0 indicating no linear correlation.
+
+```{r}
+# Table of correlations between numerical variables (we are sticking to the default Pearson's r coefficient)
+correlate(ages_modified) |>
+  formattable()
+```
+
+```{r}
+# Correlation matrix of numerical variables
+ages_modified |>
+plot_correlate()
+```
+
+## **Visualize Correlations within Groups**
+
+```{r message=FALSE, error=FALSE, warning=FALSE}
+ages_modified |>
+  group_by(Age_difference_group) |>
+  plot_correlate()
+```
+
+```{r}
+ages_modified  |> 
+  dplyr::select(Age_difference_group, actor_1_age, actor_2_age) |>
+  ggpairs(aes(color = Age_difference_group, alpha = 0.5)) +
+  theme(strip.background = element_blank()) 
+
+```
+
+## **Describe and Visualize Relationships Based on Target Variables**
+
+### **Target Variables**
+
+The target variable is what you want your model to make predictions about based on the input features (independent variables).
+
+### **Numerical Target Variables: Numerical Variable of Interest**
+
+```{r}
+# First, we need to remove NAs, they cause an error
+dataset.noNA <- ages_modified |> 
+  drop_na()
+
+# The numerical predictor variable that we want
+num <- target_by(dataset.noNA, age_difference)
+
+# Relating the variable of interest to the numerical target variable
+num_num <- relate(num, actor_1_age)
+
+# Summary of the regression analysis - the same as the summary from lm(Formula)
+summary(num_num)
+```
+
+```{r}
+# Plotting the linear relationship
+plot(num_num)
+
+```
+
+### **Numerical Target Variables: Categorical Variable of Interest**
+
+```{r}
+# The categorical predictor variable that we want
+num <- target_by(ages_modified, age_difference) 
+
+# We need to change Group to a factor
+num$Group <- as.factor(num$Age_difference_group)
+
+# Relating the variable of interest to the numerical target variable
+num_cat <- relate(num, Age_difference_group)
+
+# Summary of the ANOVA analysis - the same as the summary from anova(lm(Formula))
+summary(num_cat)
+```
+
+```{r}
+plot(num_cat) + 
+  theme(axis.text.x = element_blank())
+```
+
+### **Categorical Target Variables: Numerical Variable of Interest**
+
+```{r}
+# The categorical predictor variable that we want
+categ <- target_by(ages_modified, Age_difference_group)
+
+# Relating the variable of interest to the numerical target variable
+cat_num <- relate(categ, age_difference)
+
+# Summary of descriptive statistics
+summary(cat_num)
+```
+
+```{r}
+plot(cat_num) 
+```
+
+```{r}
+# Create new categorical column
+cat_dataset <- ages_modified |>
+  select(age_difference, Age_difference_group) |>
+  drop_na() |>
+  mutate(difference = ifelse(
+    age_difference > (mean(age_difference + sd(age_difference))), 
+                          "Yes", 
+                          "No"))
+
+# New dataset 
+cat_dataset |>
+  head(20) |>
+  formattable()
+```
+
+```{r}
+# The categorical predictor variable that we want
+categ <- target_by(cat_dataset, difference)
+
+# Relating the variable of interest to the categorical target variable
+cat_cat <- relate(categ, Age_difference_group)
+
+# Summary of the Chi-square test for Independence
+summary(cat_cat)
+```
+
+```{r}
+plot(cat_cat)
+```
