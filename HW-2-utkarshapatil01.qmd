@@ -9,7 +9,7 @@ editor: visual
 
 ## **Required Setup**
 
-```{r}
+```{r warning=FALSE, error=FALSE}
 # Sets the number of significant figures to two - e.g., 0.01
 options(digits = 2)
 
@@ -60,7 +60,7 @@ Data normality, in statistics, refers to the assumption or property that data fo
 
 ```{r}
 ages_modified |>
-  select(actor_1_age, actor_2_age, age_difference) |>
+  select(actor_1_age, actor_2_age, age_difference) |> #check skewness of the actor's ages and age difeerence in them
   describe() |>
   select(described_variables, skewness) |>
   formattable()
@@ -79,13 +79,15 @@ plot_normality(age_difference,actor_1_age, actor_2_age) # a Q-Q plot for 'age_di
 
 ## **Normality within Groups**
 
+When you want to assess the normality of data within groups, you are typically dealing with data that is organized into subgroups or categories, and you want to determine if the data within each subgroup follows a normal distribution.
+
 Looking within Age_group at the subgroup normality
 
 ### Q-Q Plots
 
 ```{r message=FALSE, error=FALSE}
 ages_modified %>%
-  group_by(Age_difference_group) %>%
+  group_by(Age_difference_group) %>% #plotting the graphs according to age group categories
   select(release_year, couple_number) %>%
   plot_normality()
 ```
@@ -179,12 +181,6 @@ BoxCoxIns |>
   plot()
 ```
 
-## **Produce an HTML Transformation Summary**
-
-```{r message=FALSE, warning=FALSE}
-# transformation_web_report(ages_modified)
-```
-
 # **Imputing like a Data Scientist**
 
 ## **Required Setup**
@@ -237,6 +233,7 @@ The variables of the `tbl_df` object returned by **diagnose()** are as
 -   `unique_rate` : rate of unique value. unique_count / number of observation
 
 ```{r}
+  
 # What are the properties of the data
 ages_modified |>
   diagnose() |>
@@ -259,10 +256,13 @@ ages_modified |>
 ```
 
 ```{r}
+
 # Boxplots and histograms of data with and without outliers
 ages_modified|>
   select(find_outliers(ages_modified)) |>
            plot_outlier()
+
+#There is no numeric value in the data set
 ```
 
 ## **Basic Exploration of Missing Values (NAs)**
@@ -299,11 +299,18 @@ na.ages_modified |>
 The **`vis_miss()`** function is part of the **`visdat`** package in R, which is used for visualizing missing data in a data set. The **`vis_miss()`** function uses color-coding to represent missing values in your data, making it easier to identify patterns of missing values.
 
 ```{r}
+na.ages_modified |>
+  select(actor_1_age, actor_2_age, age_difference) |>
+  plot_na_intersect(only_na = TRUE)
+```
+
+```{r}
 # Interactive plotly() plot of all NA values to examine every row
 #na.ages_modified |>
-# select(actor_1_age, actor_2_age, age_difference) |>
+# select(actor_1_age, actor_2_age, Age_difference_group) |>
 # vis_miss() |>
 # ggplotly() 
+# This chunk is running properly but not able to render.
 ```
 
 ## **Impute Outliers and NAs**
@@ -316,14 +323,12 @@ Here we will use group_by operation to create group based on age difference
 
 ```{r}
 # Box plot
-na.ages_modified %>% # Set the simulated normal data as a data frame
+ages_modified %>% # Set the simulated normal data as a data frame
   ggplot(aes(x = actor_1_age, y = Age_difference_group, fill = Age_difference_group)) + # Create a ggplot
   geom_boxplot(width = 0.5, outlier.size = 2, outlier.alpha = 0.5) +
-  xlab("Age difference)") +  # Relabel the x axis label
-  ylab("Age group") + # Remove the y axis label
- # scale_fill_OkabeIto() + # Change the color scheme for the fill criteria
-  theme(legend.position = "none")  # Remove the legend 
-
+  xlab("Age difference)") +  
+  ylab("Age group") + 
+  theme(legend.position = "none")  
 ```
 
 ### **Mean Imputation**
@@ -415,18 +420,40 @@ cap_out_imp_age |>
 K-Nearest Neighbor (KNN) imputation is a technique used to fill in missing values in a dataset by estimating them based on the values of their nearest neighbors. This method is particularly useful when you want to impute missing values in a multivariate context, considering the relationships between variables.
 
 ```{r}
+if (!require(factoextra)) 
+install.packages("factoextra")
+library(factoextra)
+#check for missing values
+any(is.na(ages_modified))
+#Check for infinite values
+any(is.infinite(ages_modified$age_difference))
+#Impute missing values
+ages_modified <- na.omit(ages_modified)
+autoplot(clara(ages_modified[-14], 4))
+
+```
+
+```{r warning=FALSE, error=FALSE}
+library(magrittr)
+non_numeric <- ages_modified %>%
+  select_if(is.numeric)
 # Raw summary, output suppressed
-knn_na_imp_age <- ages_modified |>
-imputate_na(age_difference, method = "knn") # didn't work for this dataset
+knn_na_imp_age <- non_numeric %>%
+  imputate_na(age_difference, method = "knn")
 
 # Plot showing the results of our imputation
-knn_na_imp_age |>
- plot()
+knn_na_imp_age %>%
+  plot()
 ```
 
 ### **Recursive Partitioning and Regression Trees (rpart)**
 
+is a tree-based algorithm that recursively splits the data into subsets based on the values of predictor variables to make predictions about the target variable.
+
 ```{r}
+library(magrittr)
+non_numeric <- na.ages_modified %>%
+  select_if(is.numeric)
 # Raw summary, output suppressed
 rpart_na_imp_age <- ages_modified |>
 imputate_na(age_difference, method = "rpart")
@@ -438,7 +465,9 @@ rpart_na_imp_age |>
 
 ### **Multivariate Imputation by Chained Equations (MICE)**
 
-```{r}
+Multivariate Imputation by Chained Equations (MICE) is a statistical technique used for imputing missing data in multivariate datasets. It is particularly useful when you have missing values in multiple variables, and the relationships between these variables need to be considered when imputing missing data.
+
+```{r warning=FALSE}
 # Raw summary, output suppressed
 mice_na_imp_age <- na.ages_modified |>
   imputate_na(age_difference, method = "mice", seed = 123)
@@ -448,12 +477,6 @@ mice_na_imp_age <- na.ages_modified |>
 # Plot showing the results of our imputation
 mice_na_imp_age |>
   plot()
-```
-
-## **Produce an HTML Transformation Summary**
-
-```{r}
-# transformation_web_report(ages_modified)
 ```
 
 # **Correlating Like a Data Master**
@@ -497,7 +520,7 @@ correlate(ages_modified) |>
   formattable()
 ```
 
-```{r}
+```{r warning=FALSE}
 # Correlation matrix of numerical variables
 ages_modified |>
 plot_correlate()
@@ -508,10 +531,10 @@ plot_correlate()
 ```{r message=FALSE, error=FALSE, warning=FALSE}
 ages_modified |>
   group_by(Age_difference_group) |>
-  plot_correlate()
+  plot_correlate() # plotting co-relation in attributes
 ```
 
-```{r}
+```{r warning=FALSE}
 ages_modified  |> 
   dplyr::select(Age_difference_group, actor_1_age, actor_2_age) |>
   ggpairs(aes(color = Age_difference_group, alpha = 0.5)) +
@@ -526,6 +549,8 @@ ages_modified  |>
 The target variable is what you want your model to make predictions about based on the input features (independent variables).
 
 ### **Numerical Target Variables: Numerical Variable of Interest**
+
+-   Formula: actor_1_age(numerical response) \~ age_difference (numerical predictor)
 
 ```{r}
 # First, we need to remove NAs, they cause an error
@@ -550,6 +575,8 @@ plot(num_num)
 
 ### **Numerical Target Variables: Categorical Variable of Interest**
 
+-   Formula: age_difference(numerical response) \~ Age_difference_group(categorical predictor)
+
 ```{r}
 # The categorical predictor variable that we want
 num <- target_by(ages_modified, age_difference) 
@@ -571,6 +598,8 @@ plot(num_cat) +
 
 ### **Categorical Target Variables: Numerical Variable of Interest**
 
+-   Formula: Age_difference_group (categorical) \~ age_difference (numerical)
+
 ```{r}
 # The categorical predictor variable that we want
 categ <- target_by(ages_modified, Age_difference_group)
@@ -586,30 +615,34 @@ summary(cat_num)
 plot(cat_num) 
 ```
 
+Here we will create new sub-category on the basis on age difference variable
+
 ```{r}
 # Create new categorical column
 cat_dataset <- ages_modified |>
   select(age_difference, Age_difference_group) |>
   drop_na() |>
-  mutate(difference = ifelse(
+  mutate(big_age_difference = ifelse(
     age_difference > (mean(age_difference + sd(age_difference))), 
                           "Yes", 
                           "No"))
 
 # New dataset 
 cat_dataset |>
-  head(20) |>
+  head() |>
   formattable()
 ```
 
-```{r}
+A **chi-square test** for independence, also known as a chi-square test of association, is a statistical test used to determine whether there is a significant association between two categorical variables.
+
+```{r warning=FALSE}
 # The categorical predictor variable that we want
-categ <- target_by(cat_dataset, difference)
+categ <- target_by(cat_dataset, big_age_difference)
 
 # Relating the variable of interest to the categorical target variable
 cat_cat <- relate(categ, Age_difference_group)
 
-# Summary of the Chi-square test for Independence
+# Summary of the 
 summary(cat_cat)
 ```
 
