@@ -77,6 +77,18 @@ ages_modified |>
 plot_normality(age_difference,actor_1_age, actor_2_age) # a Q-Q plot for 'age_difference' variable
 ```
 
+**actor_1_age:**
+
+In the context of actors' ages, this positive skewness indicates that there are relatively few older actors compared to younger actors in the data set.
+
+**actor_2_age:**
+
+Similar to actor_1_age, this positive skewness indicates that there are relatively few older actors compared to younger actors in the data set.
+
+**age_difference:**
+
+This variable represents the age difference between two actors, and a high positive skewness indicates that most age differences are small or negative, with fewer instances of large positive age differences.
+
 ## **Normality within Groups**
 
 When you want to assess the normality of data within groups, you are typically dealing with data that is organized into subgroups or categories, and you want to determine if the data within each subgroup follows a normal distribution.
@@ -91,6 +103,18 @@ ages_modified %>%
   select(release_year, couple_number) %>%
   plot_normality()
 ```
+
+**Age_difference_group = Small :**
+
+Data is highly left-skewed, which indicates that there are relatively few older movies compared to new movies with actors with small range age difference in the data set.
+
+**Age_difference_group = Middle :**
+
+Data is highly left-skewed, which indicates that there are relatively few older movies compared to new movies with actors with middle range age difference in the data set.
+
+**Age_difference_group = Large :**
+
+Data is highly left-skewed, which indicates that there are relatively few older movies compared to new movies with actors with large range age difference in the data set. Also there is high spike at year 2000 indicating that large number of movies were made with actors with large age difference.
 
 ## **Transforming Data**
 
@@ -117,6 +141,8 @@ sqrtIns |>
   plot() # plotting the transformed data by using square root transformation
 ```
 
+Here the sqrt transformation has significantly reduced the skewness and changed the distribution's characteristics. The distribution becomes more symmetric, and the values become more concentrated around the mean.
+
 ### Logarithmic (+1) Transformation
 
 A logarithmic transformation with a "+1" added to each value is a common data transformation used to address issues related to skewness or to stabilize variance in data. It's particularly useful when dealing with data that has positive values, including zero. The "+1" addition is used to handle cases where the data contains zero values because the logarithm of zero is undefined.
@@ -133,9 +159,11 @@ Log1Ins |>
   plot()
 ```
 
+Here the Logarithmic transformation has significantly reduced the skewness and changed the distribution's characteristics. The distribution becomes more symmetric, and the values become more concentrated around the mean.
+
 ### Squared Transformation
 
-A squared transformation is a data transformation that involves taking the square of each value in a data set. This transformation is often used to emphasize the differences between values and can be useful in various statistical analyses and modeling techniques.
+A squared transformation is a data transformation that involves taking the square of each value in a data set.
 
 ```{r}
 # Transforming the age_difference column using Squared Transformation
@@ -149,9 +177,11 @@ SqrdIns |>
   plot()
 ```
 
+Here the plot indicates that skewness increases after transforming tha data using Squared Transformation, indicating that the transformation made the data more positively skewed.
+
 ### Cubed Transformation
 
-A cubed transformation is a data transformation that involves taking the cube of each value in a data set. This transformation is used to emphasize nonlinear relationships between variables or to create more pronounced distinctions between values. Similar to squared transformations, cubed transformations can be applied to variables for various purposes, including modeling, data normalization, or addressing data skewness.
+A cubed transformation is a data transformation that involves taking the cube of each value in a data set. This transformation is used to emphasize nonlinear relationships between variables or to create more pronounced distinctions between values.
 
 ```{r}
 # Transforming the age_difference column using Cubed Transformation
@@ -165,9 +195,11 @@ CubeIns |>
   plot()
 ```
 
+Cubed transformation, have led to an increase in skewness and kurtosis, resulting in distributions with extremely heavy tails.
+
 ### **Box-cox Transformation**
 
-The Box-Cox transformation is a family of power transformations that are used to stabilize variance and make a data set more closely approximate a normal distribution. It is particularly useful when dealing with data that exhibits heteroscedasticity (varying levels of variance across different levels of the independent variable) or data that does not meet the assumptions of normality.
+The Box-Cox transformation is a family of power transformations that are used to stabilize variance and make a data set more closely approximate a normal distribution.
 
 ```{r}
 # Transforming the age_difference column using Box-cox Transformation
@@ -180,6 +212,8 @@ summary(BoxCoxIns)
 BoxCoxIns |>
   plot()
 ```
+
+The Box-Cox transformation has significantly reduced the skewness and kurtosis, resulting in a distribution that is closer to a normal distribution. This transformation has made the data more symmetric and improved its normality.
 
 # **Imputing like a Data Scientist**
 
@@ -294,6 +328,8 @@ na.ages_modified |>
   plot_na_pareto(only_na = TRUE)
 ```
 
+The cumulative % represents the cumulative percentage of missing values across the variables. It indicates how much of the data set is missing when considering all the variables together.
+
 ## **Advanced Exploration of Missing Values (NAs)**
 
 The **`vis_miss()`** function is part of the **`visdat`** package in R, which is used for visualizing missing data in a data set. The **`vis_miss()`** function uses color-coding to represent missing values in your data, making it easier to identify patterns of missing values.
@@ -304,14 +340,18 @@ na.ages_modified |>
   plot_na_intersect(only_na = TRUE)
 ```
 
+Plot visualizes the missing data pattern for the selected columns i.e. "actor_1_age," "actor_2_age," and "age_difference."
+
 ```{r}
 # Interactive plotly() plot of all NA values to examine every row
-#na.ages_modified |>
-# select(actor_1_age, actor_2_age, Age_difference_group) |>
-# vis_miss() |>
-# ggplotly() 
-# This chunk is running properly but not able to render.
+na.ages_modified |>
+ select(actor_1_age, actor_2_age, Age_difference_group) |>
+ vis_miss() |>
+ ggplotly() 
+
 ```
+
+It's an interactive plot where you can examine the distribution of missing values in the specified columns.
 
 ## **Impute Outliers and NAs**
 
@@ -330,6 +370,8 @@ ages_modified %>% # Set the simulated normal data as a data frame
   ylab("Age group") + 
   theme(legend.position = "none")  
 ```
+
+The box plot shows the quartiles, median, and potential outliers for each group. The "Age_difference_group" variable is used for grouping and filling, allowing you to compare the distributions between different age groups.
 
 ### **Mean Imputation**
 
@@ -352,6 +394,8 @@ mean_out_imp_age |>
   plot()
 ```
 
+Imputing outliers with the mean has led to a reduction in the spread of the data and has made the distribution little bit less skewed and less heavy-tailed compared to the original data.
+
 ### **Median Imputation**
 
 Median imputation is a method for handling missing data in a dataset by replacing missing values with the median value of the non-missing values for that variable. Median imputation is an alternative to mean imputation and can be useful when dealing with skewed or non-normally distributed data, as it is less sensitive to extreme values.
@@ -372,6 +416,8 @@ med_out_imp_age |>
 med_out_imp_age |>
   plot()
 ```
+
+Imputing outliers with the median has led to a reduction in the spread of the data and has made the distribution little bit less skewed and less heavy-tailed compared to the original data.
 
 ### **Mode Imputation**
 
@@ -394,6 +440,8 @@ mode_out_imp_age |>
 plot()
 ```
 
+Imputing outliers with the mode has led to changes in the central tendency and spread of the data and has made the distribution less skewed.
+
 ### **Capping Imputation (aka Winsorizing)**
 
 Capping imputation, also known as Winsorizing, is a data preprocessing technique used to handle outliers in a dataset by capping or limiting extreme values at a certain threshold. This method is particularly useful when you want to mitigate the impact of outliers without removing them entirely from the dataset.undefined.
@@ -402,7 +450,7 @@ Capping imputation, also known as Winsorizing, is a data preprocessing technique
 # Raw summary, output suppressed
 cap_out_imp_age <- na.ages_modified |>
   select(age_difference) |>
-  imputate_outlier(age_difference, method = "mode")
+  imputate_outlier(age_difference, method = "capping")
 
 # Output showing the summary statistics of our imputation
 cap_out_imp_age |>
@@ -414,6 +462,8 @@ cap_out_imp_age |>
 cap_out_imp_age |>
   plot()
 ```
+
+Imputing outliers with capping has made the distribution of the data little bit less skewed and has reduced the spread of the data.
 
 ### **K-Nearest Neighbor (KNN) Imputation**
 
@@ -433,6 +483,8 @@ autoplot(clara(ages_modified[-14], 4))
 
 ```
 
+Here plot is showing clustering results and visualization for value k = 4, here the clusters have roughly equal sizes, reflecting that the data is evenly distributed into four parts.
+
 ```{r warning=FALSE, error=FALSE}
 library(magrittr)
 non_numeric <- ages_modified %>%
@@ -445,6 +497,8 @@ knn_na_imp_age <- non_numeric %>%
 knn_na_imp_age %>%
   plot()
 ```
+
+Here the plot after imputation is not present as the dataset didn't have any missing values and dataset with 30% missing values was not waorking for this algorithm.
 
 ### **Recursive Partitioning and Regression Trees (rpart)**
 
@@ -463,6 +517,8 @@ rpart_na_imp_age |>
  plot()
 ```
 
+Here the plot after imputation is not present as the data set didn't have any missing values and data set with 30% missing values was not waorking for this algorithm.
+
 ### **Multivariate Imputation by Chained Equations (MICE)**
 
 Multivariate Imputation by Chained Equations (MICE) is a statistical technique used for imputing missing data in multivariate datasets. It is particularly useful when you have missing values in multiple variables, and the relationships between these variables need to be considered when imputing missing data.
@@ -478,6 +534,8 @@ mice_na_imp_age <- na.ages_modified |>
 mice_na_imp_age |>
   plot()
 ```
+
+Here MICE imputed the missing values by running multiple iterartions, after imputing the values the distribution of the data less skewed and has reduced the spread of the data.
 
 # **Correlating Like a Data Master**
 
@@ -526,6 +584,10 @@ ages_modified |>
 plot_correlate()
 ```
 
+The correlation coefficient between "actor_1_age" and "age_difference" is approximately 0.704. This suggests a strong positive correlation between these two variables.
+
+Meanwhile, the correlation coefficient between "actor_2_age" and "age_difference" is approximately -0.156. This suggests a weak negative correlation between these two variables.
+
 ## **Visualize Correlations within Groups**
 
 ```{r message=FALSE, error=FALSE, warning=FALSE}
@@ -534,6 +596,8 @@ ages_modified |>
   plot_correlate() # plotting co-relation in attributes
 ```
 
+The correlation coefficient between "actor_1_age" and "actor_1_age" goes on decreasing as the age difference between the actors goes on increasing from small to large difference.
+
 ```{r warning=FALSE}
 ages_modified  |> 
   dplyr::select(Age_difference_group, actor_1_age, actor_2_age) |>
@@ -541,6 +605,8 @@ ages_modified  |>
   theme(strip.background = element_blank()) 
 
 ```
+
+This matrix displays scatterplots for pairs of variables in the data set, with points colored by the "Age_difference_group" variable.
 
 ## **Describe and Visualize Relationships Based on Target Variables**
 
@@ -573,6 +639,8 @@ plot(num_num)
 
 ```
 
+The code plot(num_num) will generate a scatterplot of the relationship between the predictor variable actor_1_age and the target variable age_difference. we can see see a regression line plotted through the points, which represents the best-fit line based on the linear regression model.
+
 ### **Numerical Target Variables: Categorical Variable of Interest**
 
 -   Formula: age_difference(numerical response) \~ Age_difference_group(categorical predictor)
@@ -596,6 +664,8 @@ plot(num_cat) +
   theme(axis.text.x = element_blank())
 ```
 
+The plotting code generates a plot of the ANOVA analysis. The plot would show the different levels of the Age_difference_group variable on the x-axis and the corresponding coefficients on the y-axis.
+
 ### **Categorical Target Variables: Numerical Variable of Interest**
 
 -   Formula: Age_difference_group (categorical) \~ age_difference (numerical)
@@ -614,6 +684,8 @@ summary(cat_num)
 ```{r}
 plot(cat_num) 
 ```
+
+The code plot(cat_num) is generating the plot to visualize the relationships between the categorical predictor variable Age_difference_group and the numerical target variable age_difference. statistics help describe the distribution of the age_difference variable within each category of Age_difference_group, shows us how the numerical variable varies across different groups.
 
 Here we will create new sub-category on the basis on age difference variable
 
@@ -649,3 +721,5 @@ summary(cat_cat)
 ```{r}
 plot(cat_cat)
 ```
+
+A mosaic plot is a type of visualization used to display the relationship between two categorical variables.The plot is showing how the categories of Age_difference_group are distributed within the categories of big_age_difference.
